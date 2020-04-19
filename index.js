@@ -1,5 +1,7 @@
 /**
  * Sources: https://github.com/cloudflare/worker-template-fetch/blob/master/index.js
+ * https://blog.cloudflare.com/introducing-htmlrewriter/
+ * https://developers.cloudflare.com/workers/reference/apis/html-rewriter/#htmlrewriter
  */
 
 
@@ -15,6 +17,27 @@ addEventListener("fetch", (event) => {
   event.respondWith(handleRequest(event.request));
 });
 
+class AttributeRewriter
+{
+	constructor(attributeName, attributeContent)
+	{
+    this.attributeName = attributeName;
+    this.attributeContent = attributeContent;
+	}
+
+	element(element)
+	{
+    const attribute = element.getAttribute(this.attributeName);
+    if (attribute) element.setAttribute(this.attributeName, this.attributeContent);
+    element.setInnerContent(this.attributeContent);
+	}
+}
+
+const rewriter = new HTMLRewriter()
+  .on('title', new AttributeRewriter('', 'Dhruv Bhavsar'))
+  .on('h1#title', new AttributeRewriter('', 'Dhruv Bhavsar'))
+  .on('a#url', new AttributeRewriter('', 'Visit my Site!'));
+  
 
 
 async function handleRequest(request) {
@@ -28,7 +51,8 @@ async function handleRequest(request) {
   const json = await fetchGetHtml(URL);
   const randomRoute = chooseRandRoute(json);
   const html = await fetchGetHtml(randomRoute);
-  return new Response(html, init);
+  const resp = await fetch(randomRoute);
+  return rewriter.transform(resp);
 }
 
 
