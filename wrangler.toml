@@ -1,6 +1,12 @@
+<<<<<<< HEAD
 name = "cloudflare-challenge"
 type = "javascript"
 account_id = "ca8169361620d11e200abb9c029e7ff5"
+=======
+name = "{{project-name}}"
+type = "javascript"
+account_id = ""
+>>>>>>> 2d8f78217091122ce4897a98bbb49eebe39ddb5d
 workers_dev = true
 route = ""
 zone_id = ""
