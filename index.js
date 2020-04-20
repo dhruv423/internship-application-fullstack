@@ -2,16 +2,12 @@
  * Sources: https://github.com/cloudflare/worker-template-fetch/blob/master/index.js
  * https://blog.cloudflare.com/introducing-htmlrewriter/
  * https://developers.cloudflare.com/workers/reference/apis/html-rewriter/#htmlrewriter
+ * https://stackoverflow.com/questions/49428779/cloudflare-workers-check-for-cookie-add-headers-set-cookie
  */
 
 
 const URL = "https://cfw-takehome.developers.workers.dev/api/variants";
-const init = {
-  method: "POST",
-  headers: {
-    "content-type": "application/json",
-  },
-};
+
 
 addEventListener("fetch", (event) => {
   event.respondWith(handleRequest(event.request));
@@ -29,37 +25,57 @@ class AttributeRewriter
 	{
     const attribute = element.getAttribute(this.attributeName);
     if (attribute) element.setAttribute(this.attributeName, this.attributeContent);
-    element.setInnerContent(this.attributeContent);
+    else element.setInnerContent(this.attributeContent);
 	}
 }
 
 const rewriter = new HTMLRewriter()
   .on('title', new AttributeRewriter('', 'Dhruv Bhavsar'))
   .on('h1#title', new AttributeRewriter('', 'Dhruv Bhavsar'))
-  .on('a#url', new AttributeRewriter('', 'Visit my Site!'));
+  .on('a#url', new AttributeRewriter('', 'Visit my Site!'))
+  .on('a#url', new AttributeRewriter('href', 'https://dhruv423.github.io/'));
   
 
-
+/**
+ * Appropriate steps to take for the response for the request
+ * @param {*} request 
+ */
 async function handleRequest(request) {
-  const init = {
-    method: 'Get',
-    headers: {
-      'content-type': 'text/html;charset=UTF-8',
-    },
-  }
 
+  // Get the json response
   const json = await fetchGetHtml(URL);
-  const randomRoute = chooseRandRoute(json);
-  const html = await fetchGetHtml(randomRoute);
-  const resp = await fetch(randomRoute);
-  return rewriter.transform(resp);
+
+  // Get cookies
+  const cookies = request.headers.get("Cookie");
+
+  // Response
+  let response = new Response("Initial");
+
+  if (cookies && cookies.includes("variant 0")) {
+    response = rewriter.transform(await fetch(json.variants[0]));
+  }
+  else if (cookies && cookies.includes("variant 1")) {
+    response = rewriter.transform(await fetch(json.variants[1]));
+  }
+  // no cookies available
+  else {
+    const {route, variant} = chooseRandRoute(json);
+    const resp = await fetch(variant);
+    response = rewriter.transform(resp);
+    response.headers.append("Set-Cookie", `variant ${route}`);
+  }
+  return response;
 }
 
-
+/**
+ * Function to get random route url and variant number
+ * @param {*} json 
+ */
 function chooseRandRoute(json) {
   const urls = json.variants;
   const route = Math.floor(Math.random() * urls.length);
-  return urls[route];
+  const variant = urls[route];
+  return { route, variant };
 }
 
 
