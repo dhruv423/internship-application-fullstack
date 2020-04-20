@@ -62,7 +62,7 @@ async function handleRequest(request) {
     const {route, variant} = chooseRandRoute(json);
     const resp = await fetch(variant);
     response = rewriter.transform(resp);
-    response.headers.append("Set-Cookie", `variant ${route}`);
+    response.headers.set("Set-Cookie", `variant ${route}`);
   }
   return response;
 }
